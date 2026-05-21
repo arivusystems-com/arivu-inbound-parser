@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "composite": true
+  },
+  "references": [
+    { "path": "../../packages/config" },
+    { "path": "../../packages/logger" },
+    { "path": "../../packages/database" },
+    { "path": "../../packages/queue" },
+    { "path": "../../packages/types" }
+  ],
+  "include": ["src/**/*"]
+}

@@ -1,0 +1,39 @@
+{
+  "name": "arivu-inbound-parser",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-tenant inbound email parser for Arivu CRM",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "dev": "pnpm -r --parallel run dev",
+    "dev:core": "pnpm --filter \"./packages/*\" run build && pnpm --parallel --filter @arivu/api --filter @arivu/smtp-server --filter @arivu/parser-worker run dev",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "pnpm -r run typecheck",
+    "clean": "pnpm -r run clean && rm -rf node_modules",
+    "seed": "tsx scripts/seed.ts",
+    "test": "pnpm --filter @arivu/routing build && tsc -p packages/routing/tsconfig.test.json && node --test packages/routing/dist/index.test.js",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "infra:ps": "docker compose ps",
+    "dev:stop": "bash scripts/dev-stop.sh"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@arivu/config": "workspace:*",
+    "@arivu/database": "workspace:*",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "@types/node": "^22.10.5",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.19.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.15.0"
+}
