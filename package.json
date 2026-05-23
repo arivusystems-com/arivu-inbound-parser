@@ -6,7 +6,7 @@
   "scripts": {
     "build": "pnpm -r run build",
     "dev": "pnpm -r --parallel run dev",
-    "dev:core": "pnpm --filter \"./packages/*\" run build && pnpm --parallel --filter @arivu/api --filter @arivu/smtp-server --filter @arivu/parser-worker run dev",
+    "dev:core": "pnpm --filter \"./packages/*\" run build && pnpm --parallel --filter @arivu/api --filter @arivu/smtp-server --filter @arivu/parser-worker --filter @arivu/attachment-worker --filter @arivu/event-dispatcher run dev",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -14,11 +14,19 @@
     "typecheck": "pnpm -r run typecheck",
     "clean": "pnpm -r run clean && rm -rf node_modules",
     "seed": "tsx scripts/seed.ts",
+    "storage:check": "tsx scripts/check-storage.ts",
     "test": "pnpm --filter @arivu/routing build && tsc -p packages/routing/tsconfig.test.json && node --test packages/routing/dist/index.test.js",
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
     "infra:ps": "docker compose ps",
-    "dev:stop": "bash scripts/dev-stop.sh"
+    "dev:stop": "bash scripts/dev-stop.sh",
+    "prod:check": "bash scripts/prod-check.sh",
+    "prod:seed": "bash scripts/prod-seed.sh",
+    "prod:up": "bash scripts/prod-up.sh",
+    "prod:down": "bash scripts/prod-down.sh",
+    "prod:status": "bash scripts/prod-status.sh",
+    "prod:infra:up": "docker compose -f docker-compose.prod.yml up -d",
+    "prod:infra:down": "docker compose -f docker-compose.prod.yml down"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

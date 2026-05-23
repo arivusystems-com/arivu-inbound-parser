@@ -5,6 +5,6 @@
     "outDir": "dist",
     "composite": true
   },
-  "references": [{ "path": "../types" }],
+  "references": [{ "path": "../types" }, { "path": "../config" }],
   "include": ["src/**/*"]
 }

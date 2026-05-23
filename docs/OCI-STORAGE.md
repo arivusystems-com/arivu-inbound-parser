@@ -13,15 +13,28 @@ MongoDB holds metadata only; binaries never go in MongoDB.
 ## 2. Customer Secret Keys
 
 1. User profile → **Customer secret keys** → **Generate secret key**
-2. Save **Access Key** and **Secret Key** (secret shown once)
+2. Save **Access Key** and **Secret Key** immediately (secret shown once)
+
+The **Access Key** is **not** your OCI login email.
+
+The **Secret Key** is an Oracle-generated base64 string (~44 characters, often ending with `=`). It uses only `A–Z`, `a–z`, `0–9`, `+`, `/`, and `=`. If your secret is short or contains characters like `#`, `)`, or `]`, it is wrong or was truncated.
+
+Put **both** values in `.env` — do not swap them:
+
+```env
+STORAGE_ACCESS_KEY="paste-access-key-here"
+STORAGE_SECRET_KEY="paste-full-base64-secret-here"
+```
+
+Wrap values in **double quotes** if they contain `#` or spaces (otherwise `#` starts a comment and truncates the key).
 
 ## 3. Configure `.env`
 
 ```env
 STORAGE_ENDPOINT=https://YOUR_NAMESPACE.compat.objectstorage.us-phoenix-1.oraclecloud.com
 STORAGE_REGION=us-phoenix-1
-STORAGE_ACCESS_KEY=ocid1.credential...
-STORAGE_SECRET_KEY=your-secret
+STORAGE_ACCESS_KEY="ocid1.credential.oc1..aaaa..."
+STORAGE_SECRET_KEY="your-secret-with-special-chars-quoted"
 STORAGE_BUCKET=arivu-inbound
 STORAGE_FORCE_PATH_STYLE=true
 ```

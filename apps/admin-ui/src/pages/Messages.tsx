@@ -29,6 +29,7 @@ export function MessagesPage() {
           aria-label="Filter by status"
         >
           <option value="">All statuses</option>
+          <option value="attachments_pending">attachments_pending</option>
           <option value="processed">processed</option>
           <option value="queued">queued</option>
           <option value="parsing">parsing</option>

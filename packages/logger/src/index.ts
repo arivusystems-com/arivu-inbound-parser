@@ -1,4 +1,6 @@
-import pino, { type Logger, type LoggerOptions } from 'pino';
+import { createWriteStream } from 'node:fs';
+import pino, { type Logger, type LoggerOptions, type StreamEntry } from 'pino';
+import { resolveLogFilePath } from './log-file.js';
 
 export interface LogContext {
   service?: string;
@@ -15,9 +17,12 @@ export function createLogger(
   options?: { level?: string; pretty?: boolean },
 ): Logger {
   const isDev = process.env.NODE_ENV !== 'production';
+  const level = options?.level ?? process.env.LOG_LEVEL ?? 'info';
+  const logFile = resolveLogFilePath();
+
   const base: LoggerOptions = {
     name,
-    level: options?.level ?? process.env.LOG_LEVEL ?? 'info',
+    level,
     base: undefined,
     timestamp: pino.stdTimeFunctions.isoTime,
     formatters: {
@@ -25,7 +30,30 @@ export function createLogger(
     },
   };
 
+  const streams: StreamEntry[] = [];
+
+  if (logFile) {
+    streams.push({
+      level: 'trace' as const,
+      stream: createWriteStream(logFile, { flags: 'a' }),
+    });
+  }
+
   if (options?.pretty ?? isDev) {
+    streams.push({
+      level: 'trace' as const,
+      stream: pino.transport({
+        target: 'pino-pretty',
+        options: { colorize: true, translateTime: 'SYS:standard' },
+      }),
+    });
+  }
+
+  if (streams.length === 0) {
+    return pino(base);
+  }
+
+  if (streams.length === 1 && !logFile) {
     return pino({
       ...base,
       transport: {
@@ -35,11 +63,13 @@ export function createLogger(
     });
   }
 
-  return pino(base);
+  return pino(base, pino.multistream(streams));
 }
 
 export function childWithContext(logger: Logger, ctx: LogContext): Logger {
   return logger.child(ctx);
 }
 
+export { resolveLogFilePath } from './log-file.js';
+export { queryLogs, type LogLine, type LogQuery } from './query-logs.js';
 export type { Logger };

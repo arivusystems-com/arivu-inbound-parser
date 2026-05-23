@@ -8,6 +8,7 @@
     { "path": "packages/storage" },
     { "path": "packages/events" },
     { "path": "packages/routing" },
+    { "path": "packages/threading" },
     { "path": "packages/queue" },
     { "path": "apps/api" },
     { "path": "apps/smtp-server" },

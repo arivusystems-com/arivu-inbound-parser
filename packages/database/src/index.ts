@@ -28,6 +28,13 @@ export async function connectDatabase(uri: string): Promise<DatabaseClient> {
     messages.createIndex({ tenantId: 1 }),
     messages.createIndex({ mailboxId: 1 }),
     messages.createIndex({ messageId: 1 }),
+    messages.createIndex(
+      { mailboxId: 1, messageId: 1 },
+      {
+        unique: true,
+        partialFilterExpression: { messageId: { $type: 'string', $gt: '' } },
+      },
+    ),
     messages.createIndex({ threadId: 1 }),
     messages.createIndex({ receivedAt: -1 }),
     mailboxes.createIndex({ tenantId: 1 }),
@@ -52,30 +59,54 @@ export async function connectDatabase(uri: string): Promise<DatabaseClient> {
   };
 }
 
+export interface SeedTenantMailboxInput {
+  tenantId: string;
+  tenantName: string;
+  mailboxId: string;
+  mailboxName: string;
+  routingAddress: string;
+  mailboxType?: Mailbox['type'];
+}
+
+/** Upsert one tenant and mailbox (idempotent). Used by dev and production seed scripts. */
+export async function seedTenantMailbox(
+  database: DatabaseClient,
+  input: SeedTenantMailboxInput,
+): Promise<void> {
+  await database.tenants.updateOne(
+    { _id: input.tenantId },
+    { $set: { _id: input.tenantId, name: input.tenantName } },
+    { upsert: true },
+  );
+
+  await database.mailboxes.updateOne(
+    { _id: input.mailboxId },
+    {
+      $set: {
+        _id: input.mailboxId,
+        tenantId: input.tenantId,
+        type: input.mailboxType ?? 'shared',
+        name: input.mailboxName,
+        routingAddress: input.routingAddress,
+      },
+    },
+    { upsert: true },
+  );
+}
+
 export async function seedDevData(database: DatabaseClient): Promise<void> {
   const tenantId = 't_123';
   const mailboxId = 'm_45';
   const routingAddress = `support+${tenantId}_${mailboxId}@reply.arivusystems.com`;
 
-  await database.tenants.updateOne(
-    { _id: tenantId },
-    { $set: { _id: tenantId, name: 'Acme Inc (dev)' } },
-    { upsert: true },
-  );
-
-  await database.mailboxes.updateOne(
-    { _id: mailboxId },
-    {
-      $set: {
-        _id: mailboxId,
-        tenantId,
-        type: 'shared',
-        name: 'Support',
-        routingAddress,
-      },
-    },
-    { upsert: true },
-  );
+  await seedTenantMailbox(database, {
+    tenantId,
+    tenantName: 'Acme Inc (dev)',
+    mailboxId,
+    mailboxName: 'Support',
+    routingAddress,
+    mailboxType: 'shared',
+  });
 }
 
 export type { Db, Collection, Document };

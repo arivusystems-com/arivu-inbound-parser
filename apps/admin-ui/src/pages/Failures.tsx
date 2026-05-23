@@ -5,6 +5,7 @@ import { fetchJson, postJson } from '../api';
 interface Failure {
   _id: string;
   subject: string;
+  processingStatus: string;
   errorMessage?: string;
   receivedAt: string;
 }
@@ -30,7 +31,7 @@ export function FailuresPage() {
   async function replay(id: string) {
     setReplayingId(id);
     try {
-      await postJson(`/admin/messages/${id}/replay`);
+      await postJson(`/admin/failures/${id}/retry`);
       load();
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Replay failed');
@@ -44,12 +45,17 @@ export function FailuresPage() {
   return (
     <>
       <h2>Failures</h2>
+      <p className="muted">
+        Failed parses and duplicate RFC Message-IDs. For exhausted queue jobs see{' '}
+        <Link to="/dlq">DLQ</Link>.
+      </p>
       {loading && <p className="muted">Loading…</p>}
       <div className="card">
         <table>
           <thead>
             <tr>
               <th>Subject</th>
+              <th>Status</th>
               <th>Error</th>
               <th>Received</th>
               <th />
@@ -58,7 +64,7 @@ export function FailuresPage() {
           <tbody>
             {!loading && failures.length === 0 && (
               <tr>
-                <td colSpan={4} className="muted">
+                <td colSpan={5} className="muted">
                   No failures — pipeline is healthy.
                 </td>
               </tr>
@@ -69,6 +75,7 @@ export function FailuresPage() {
                   <Link to={`/messages/${f._id}`}>{f.subject || '(no subject)'}</Link>
                   <div className="muted mono small">{f._id}</div>
                 </td>
+                <td>{f.processingStatus}</td>
                 <td className="error-cell">{f.errorMessage || '—'}</td>
                 <td>{new Date(f.receivedAt).toLocaleString()}</td>
                 <td>

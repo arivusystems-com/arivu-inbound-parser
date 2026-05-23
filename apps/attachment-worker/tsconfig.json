@@ -5,6 +5,13 @@
     "outDir": "dist",
     "composite": true
   },
-  "references": [{ "path": "../../packages/config" }, { "path": "../../packages/logger" }],
+  "references": [
+    { "path": "../../packages/config" },
+    { "path": "../../packages/logger" },
+    { "path": "../../packages/database" },
+    { "path": "../../packages/storage" },
+    { "path": "../../packages/queue" },
+    { "path": "../../packages/types" }
+  ],
   "include": ["src/**/*"]
 }

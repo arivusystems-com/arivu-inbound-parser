@@ -259,3 +259,47 @@ table a {
   color: #0f172a;
   font-weight: 500;
 }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.filters input,
+.filters select {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+
+.log-viewer {
+  max-height: 480px;
+  overflow: auto;
+  font-size: 0.8rem;
+}
+
+.log-line {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 0.15rem 0;
+}
+
+.log-error {
+  color: #b91c1c;
+}
+
+.log-warn {
+  color: #b45309;
+}
+
+.small {
+  font-size: 0.8rem;
+}
