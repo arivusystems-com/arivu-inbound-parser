@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { fetchJson } from '../api';
 
 interface Stats {
@@ -44,9 +45,11 @@ export function DashboardPage() {
         <div className="card">
           <strong>Last message</strong>
           <p>
-            {stats.lastMessage.subject || '(no subject)'} —{' '}
-            <span className="muted">{stats.lastMessage._id}</span>
+            <Link to={`/messages/${stats.lastMessage._id}`}>
+              {stats.lastMessage.subject || '(no subject)'}
+            </Link>
           </p>
+          <p className="muted mono">{stats.lastMessage._id}</p>
         </div>
       )}
     </>

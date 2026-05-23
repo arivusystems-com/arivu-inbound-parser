@@ -1,6 +1,7 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
 import { DashboardPage } from './pages/Dashboard';
 import { MessagesPage } from './pages/Messages';
+import { MessageDetailPage } from './pages/MessageDetail';
 import { FailuresPage } from './pages/Failures';
 import { QueuesPage } from './pages/Queues';
 import { MailboxesPage } from './pages/Mailboxes';
@@ -32,6 +33,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/messages/:id" element={<MessageDetailPage />} />
           <Route path="/failures" element={<FailuresPage />} />
           <Route path="/queues" element={<QueuesPage />} />
           <Route path="/mailboxes" element={<MailboxesPage />} />
