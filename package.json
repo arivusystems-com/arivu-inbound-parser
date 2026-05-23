@@ -6,6 +6,7 @@
   "scripts": {
     "build": "pnpm -r run build",
     "build:prod": "bash scripts/build-prod.sh",
+    "pack:server": "bash scripts/pack-for-server.sh",
     "dev": "pnpm -r --parallel run dev",
     "dev:core": "pnpm --filter \"./packages/*\" run build && pnpm --parallel --filter @arivu/api --filter @arivu/smtp-server --filter @arivu/parser-worker --filter @arivu/attachment-worker --filter @arivu/event-dispatcher run dev",
     "lint": "eslint .",

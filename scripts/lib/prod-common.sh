@@ -327,9 +327,6 @@ start_admin_ui() {
   local api_port="${API_PORT:-3000}"
   local api_url
   api_url="$(env_val VITE_API_URL "")"
-  if [[ -z "$api_url" ]]; then
-    api_url="http://127.0.0.1:${api_port}"
-  fi
   local pid
   pid="$(read_pid admin-ui || true)"
   if is_running_pid "$pid"; then
@@ -338,12 +335,21 @@ start_admin_ui() {
   fi
 
   if [[ "$skip_build" -eq 0 ]]; then
-    log "Building admin UI (VITE_API_URL=${api_url})..."
-    (
-      cd "$PROD_ROOT"
-      export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=2048}"
-      VITE_API_URL="$api_url" pnpm --filter @arivu/admin-ui build
-    )
+    if [[ -n "$api_url" ]]; then
+      log "Building admin UI (VITE_API_URL=${api_url})..."
+      (
+        cd "$PROD_ROOT"
+        export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=2048}"
+        VITE_API_URL="$api_url" pnpm --filter @arivu/admin-ui build
+      )
+    else
+      log "Building admin UI (API via /api proxy → 127.0.0.1:${api_port})..."
+      (
+        cd "$PROD_ROOT"
+        export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=2048}"
+        pnpm --filter @arivu/admin-ui build
+      )
+    fi
   else
     log "Skipping admin UI build (PROD_UI_SKIP_BUILD=1)"
     if [[ ! -d "$PROD_ROOT/apps/admin-ui/dist" ]]; then

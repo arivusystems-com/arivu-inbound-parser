@@ -38,6 +38,7 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --) shift; continue ;;
     --skip-infra) SKIP_INFRA=1 ;;
     --skip-build) SKIP_BUILD=1 ;;
     --with-ui) SKIP_UI=0 ;;
