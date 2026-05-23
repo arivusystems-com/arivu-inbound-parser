@@ -58,10 +58,14 @@ Optional `.env`:
 
 ```env
 ADMIN_UI_PORT=5173
-VITE_API_URL=http://127.0.0.1:3000
+# Leave VITE_API_URL unset — UI calls /api, vite preview proxies to the API on this server.
+# Only set if API is on a different public host:
+# VITE_API_URL=https://parser.example.com
 ```
 
 For remote browser access via SSH tunnel, `127.0.0.1` is correct. If you serve UI another way, set `VITE_API_URL` to the API URL **as seen from the browser**.
+
+**If you see `ERR_CONNECTION_REFUSED` to `127.0.0.1:3000`:** remove `VITE_API_URL=http://127.0.0.1:3000` from `.env`, rebuild UI (`pnpm prod:ui:down && pnpm prod:ui:up`), and ensure the API is running (`curl http://127.0.0.1:3000/health` on the server).
 
 **Security:** Do not expose ports 5173/3000 on the public internet without VPN, SSH tunnel, or reverse proxy + auth.
 
@@ -87,15 +91,28 @@ export NODE_OPTIONS=--max-old-space-size=1536
 pnpm build:prod
 ```
 
-**Alternative:** build on your laptop, copy to server:
+**Deploy without building on the server** (recommended for 1–2 GB VMs):
 
 ```bash
-# Laptop
-pnpm build:prod
-rsync -avz --exclude node_modules ./ ubuntu@email-parser-vnic:~/arivu-inbound-parser/
+# Laptop (same OS/arch as server: linux x64)
+pnpm pack:server
+scp /tmp/arivu-parser-deploy.tar.gz ubuntu@<server>:~/
 
-# Server — skip build
+# Server
+mkdir -p ~/arivu-inbound-parser && cd ~/arivu-inbound-parser
+tar -xzf ~/arivu-parser-deploy.tar.gz
+pnpm install
+cp .env.example .env && nano .env
 pnpm prod:up -- --skip-build
+pnpm prod:ui:up    # optional, step 2 for admin UI
+```
+
+Or rsync after local build:
+
+```bash
+pnpm build:prod
+rsync -avz --exclude node_modules --exclude .git ./ ubuntu@<server>:~/arivu-inbound-parser/
+ssh ubuntu@<server> 'cd ~/arivu-inbound-parser && pnpm install && pnpm prod:up -- --skip-build'
 ```
 
 ### `prod-up` stuck at “Building packages and apps…”
