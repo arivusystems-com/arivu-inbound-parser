@@ -5,6 +5,7 @@
   "description": "Multi-tenant inbound email parser for Arivu CRM",
   "scripts": {
     "build": "pnpm -r run build",
+    "build:prod": "pnpm -r --workspace-concurrency 2 --filter '!@arivu/admin-ui' run build",
     "dev": "pnpm -r --parallel run dev",
     "dev:core": "pnpm --filter \"./packages/*\" run build && pnpm --parallel --filter @arivu/api --filter @arivu/smtp-server --filter @arivu/parser-worker --filter @arivu/attachment-worker --filter @arivu/event-dispatcher run dev",
     "lint": "eslint .",
@@ -23,6 +24,8 @@
     "prod:check": "bash scripts/prod-check.sh",
     "prod:seed": "bash scripts/prod-seed.sh",
     "prod:up": "bash scripts/prod-up.sh",
+    "prod:ui:up": "bash scripts/prod-ui-up.sh",
+    "prod:ui:down": "bash scripts/prod-ui-down.sh",
     "prod:down": "bash scripts/prod-down.sh",
     "prod:status": "bash scripts/prod-status.sh",
     "prod:infra:up": "docker compose -f docker-compose.prod.yml up -d",

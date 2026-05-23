@@ -189,7 +189,10 @@ packages/
 | `pnpm test` | Run routing unit tests |
 | `pnpm infra:up` | Start Docker dependencies (`docker compose up -d`) |
 | `pnpm infra:ps` | Show Docker service status |
-| `pnpm prod:up` | **Production:** build, start Mongo/Redis, all services + admin UI |
+| `pnpm prod:up` | **Production step 1:** backends only (Mongo/Redis + 5 services) |
+| `pnpm prod:ui:up` | **Production step 2:** build & start admin UI (after `prod:up`) |
+| `pnpm prod:ui:down` | Stop admin UI only |
+| `pnpm build:prod` | Build packages + 5 services only (no admin-ui) |
 | `pnpm prod:down` | Stop production services (`pnpm prod:down -- --infra` also stops Docker) |
 | `pnpm prod:status` | Production PIDs and API health |
 | `pnpm prod:check` | Pre-flight: Node, ports, `storage:check` |
