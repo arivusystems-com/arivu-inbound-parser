@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { fetchJson } from '../api';
 
 type QueueStats = Record<
   string,
-  { waiting: number; active: number; failed: number; completed: number }
+  { waiting: number; active: number; failed: number; completed: number; delayed?: number }
 >;
 
 export function QueuesPage() {
@@ -22,6 +23,10 @@ export function QueuesPage() {
   return (
     <>
       <h2>Queues</h2>
+      <p className="muted">
+        BullMQ pipeline. Poison messages after max retries appear in{' '}
+        <Link to="/dlq">DLQ</Link>.
+      </p>
       <div className="card">
         <table>
           <thead>
@@ -29,6 +34,7 @@ export function QueuesPage() {
               <th>Queue</th>
               <th>Waiting</th>
               <th>Active</th>
+              <th>Delayed</th>
               <th>Completed</th>
               <th>Failed</th>
             </tr>
@@ -39,6 +45,7 @@ export function QueuesPage() {
                 <td>{name}</td>
                 <td>{q.waiting}</td>
                 <td>{q.active}</td>
+                <td>{q.delayed ?? 0}</td>
                 <td>{q.completed}</td>
                 <td>{q.failed}</td>
               </tr>

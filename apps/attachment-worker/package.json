@@ -5,16 +5,24 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --env-file=../../.env src/index.ts",
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "@arivu/config": "workspace:*",
-    "@arivu/logger": "workspace:*"
+    "@arivu/database": "workspace:*",
+    "@arivu/logger": "workspace:*",
+    "@arivu/queue": "workspace:*",
+    "@arivu/security": "workspace:*",
+    "@arivu/storage": "workspace:*",
+    "@arivu/types": "workspace:*",
+    "mailparser": "^3.7.2",
+    "ulid": "^2.3.0"
   },
   "devDependencies": {
+    "@types/mailparser": "^3.4.5",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   }

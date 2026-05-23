@@ -1,0 +1,25 @@
+{
+  "name": "@arivu/event-dispatcher",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch --env-file=../../.env src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@arivu/config": "workspace:*",
+    "@arivu/database": "workspace:*",
+    "@arivu/events": "workspace:*",
+    "@arivu/logger": "workspace:*",
+    "@arivu/queue": "workspace:*",
+    "@arivu/types": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

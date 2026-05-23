@@ -16,6 +16,7 @@
     "@arivu/logger": "workspace:*",
     "@arivu/queue": "workspace:*",
     "@arivu/routing": "workspace:*",
+    "@arivu/security": "workspace:*",
     "@arivu/storage": "workspace:*",
     "@arivu/types": "workspace:*",
     "smtp-server": "^3.13.6",

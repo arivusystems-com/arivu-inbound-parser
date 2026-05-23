@@ -3,8 +3,10 @@ export type ProcessingStatus =
   | 'raw_stored'
   | 'queued'
   | 'parsing'
+  | 'attachments_pending'
   | 'processed'
-  | 'failed';
+  | 'failed'
+  | 'duplicate';
 
 export type MailboxType = 'shared' | 'private';
 
@@ -49,6 +51,18 @@ export interface AttachmentMeta {
   storagePath: string;
 }
 
+export type SecurityAuthMode = 'off' | 'monitor' | 'enforce';
+
+export interface EmailAuthResults {
+  checkedAt: string;
+  mode: SecurityAuthMode | 'off';
+  spf: { result: string; domain?: string };
+  dkim: { result: string; domains?: string[] };
+  dmarc: { result: string; policy?: string; aligned?: boolean };
+  overall: string;
+  summary: string;
+}
+
 export interface InternalMessage {
   _id: string;
   tenantId: string;
@@ -70,6 +84,11 @@ export interface InternalMessage {
   receivedAt: string;
   processingStatus: ProcessingStatus;
   errorMessage?: string;
+  /** Set when email.received was successfully published to CRM. */
+  eventDispatchedAt?: string;
+  /** SPF/DKIM/DMARC results from parser (Phase 4). */
+  authResults?: EmailAuthResults;
+  clientIp?: string;
 }
 
 export interface Thread {
@@ -92,6 +111,32 @@ export interface MimeParseJob {
   tenantId: string;
   mailboxId: string;
   rawMimePath: string;
+}
+
+export interface AttachmentProcessJob {
+  messageId: string;
+  tenantId: string;
+  mailboxId: string;
+  rawMimePath: string;
+}
+
+export interface EventDispatchJob {
+  messageId: string;
+  tenantId: string;
+  mailboxId: string;
+}
+
+export interface DeadLetterJob {
+  originalQueue: QueueName;
+  originalJobId?: string;
+  payload: unknown;
+  error: string;
+  failedAt: string;
+  attemptsMade: number;
+  messageId?: string;
+  tenantId?: string;
+  mailboxId?: string;
+  rawMimePath?: string;
 }
 
 export const QUEUE_NAMES = {

@@ -4,6 +4,8 @@ build/
 .env
 .env.local
 *.log
+logs/
+.run/
 .DS_Store
 coverage/
 .turbo/

@@ -150,8 +150,8 @@ Then open the Admin UI → **Messages** → click a row for **detail + replay pa
 ```text
 apps/
   smtp-server/       SMTP ingest (thin: store raw + enqueue)
-  parser-worker/     MIME parsing (BullMQ)
-  attachment-worker/ Phase 2 placeholder
+  parser-worker/     MIME parsing + threading (BullMQ)
+  attachment-worker/ Attachment extraction → OCI
   api/               Admin + health API
   admin-ui/          Operator console (6 pages)
 
@@ -168,7 +168,13 @@ packages/
 
 ## Docs
 
+- [**Production deployment guide**](./docs/PRODUCTION-DEPLOYMENT.md) — infrastructure, env, go-live checklist
 - [OCI Object Storage setup](./docs/OCI-STORAGE.md)
+- [CRM events (`email.received`)](./docs/EVENTS.md)
+- [**CRM provisioning API**](./docs/CRM-PROVISIONING.md) — register tenants/mailboxes from CRM (no manual seed)
+- [**CRM webhook integration guide**](./docs/CRM-WEBHOOK-INTEGRATION.md) — contract for CRM developers
+- [Operator guide (admin UI)](./docs/OPERATIONS.md)
+- [Security (Phase 4)](./docs/SECURITY.md)
 - [Detailed requirements](./Arivu%20Inbound%20Parser%20-%20Detailed%20Requir.md)
 - [Implementation roadmap](./ROADMAP.md)
 
@@ -177,12 +183,17 @@ packages/
 | Command | Description |
 |---------|-------------|
 | `pnpm build` | Build all packages and apps |
-| `pnpm dev:core` | API + SMTP + parser worker |
+| `pnpm dev:core` | API + SMTP + parser + attachment + event-dispatcher workers |
 | `pnpm dev:stop` | Free ports 3000 and 2525 (kill stale dev processes) |
 | `pnpm seed` | Seed dev tenant/mailbox |
 | `pnpm test` | Run routing unit tests |
 | `pnpm infra:up` | Start Docker dependencies (`docker compose up -d`) |
 | `pnpm infra:ps` | Show Docker service status |
+| `pnpm prod:up` | **Production:** build, start Mongo/Redis, all services + admin UI |
+| `pnpm prod:down` | Stop production services (`pnpm prod:down -- --infra` also stops Docker) |
+| `pnpm prod:status` | Production PIDs and API health |
+| `pnpm prod:check` | Pre-flight: Node, ports, `storage:check` |
+| `pnpm prod:seed` | Upsert tenant + mailbox in MongoDB (see `--help`) |
 
 If `pnpm` is not installed, replace `pnpm` with `npx pnpm@9.15.0` in any command above.
 

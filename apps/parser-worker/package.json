@@ -15,7 +15,9 @@
     "@arivu/database": "workspace:*",
     "@arivu/logger": "workspace:*",
     "@arivu/queue": "workspace:*",
+    "@arivu/security": "workspace:*",
     "@arivu/storage": "workspace:*",
+    "@arivu/threading": "workspace:*",
     "@arivu/types": "workspace:*",
     "mailparser": "^3.7.2"
   },

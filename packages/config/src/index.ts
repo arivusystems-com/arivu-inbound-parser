@@ -89,6 +89,55 @@ const envSchema = z.object({
   MAX_ATTACHMENT_BYTES: z.coerce.number().int().positive().default(25 * 1024 * 1024),
   MAX_MESSAGE_BYTES: z.coerce.number().int().positive().default(50 * 1024 * 1024),
   STREAM_CHUNK_BYTES: z.coerce.number().int().positive().default(64 * 1024),
+
+  /** CRM webhook URL for email.received (optional — logs to stdout when unset). */
+  CRM_WEBHOOK_URL: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim().length > 0 ? v.trim() : undefined)),
+  /** HMAC-SHA256 secret for X-Arivu-Signature header (optional). */
+  CRM_WEBHOOK_SECRET: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim().length > 0 ? v.trim() : undefined)),
+
+  /**
+   * API key for CRM → parser provisioning (POST /integrations/v1/*).
+   * Required in production. In development, integration routes work without a key when unset.
+   */
+  CRM_API_KEY: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim().length > 0 ? v.trim() : undefined)),
+
+  QUEUE_MAX_ATTEMPTS: z.coerce.number().int().positive().default(3),
+  QUEUE_BACKOFF_MS: z.coerce.number().int().positive().default(2000),
+
+  /** Shared log file for admin UI (JSON lines). Set LOG_FILE=false to disable. */
+  LOG_FILE: z
+    .string()
+    .optional()
+    .transform((v) => (v === 'false' || v === '0' ? undefined : v)),
+
+  /** SPF/DKIM/DMARC: off | monitor (log only) | enforce (reject failed auth). */
+  SECURITY_AUTH_MODE: z.enum(['off', 'monitor', 'enforce']).default('off'),
+
+  SECURITY_RATE_LIMIT_IP_PER_MIN: z.coerce.number().int().positive().default(120),
+  SECURITY_RATE_LIMIT_TENANT_PER_MIN: z.coerce.number().int().positive().default(300),
+  SECURITY_IP_ALLOWLIST: z.string().optional().default(''),
+  SECURITY_IP_BLOCKLIST: z.string().optional().default(''),
+  SECURITY_GREYLIST_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
+  SECURITY_GREYLIST_TTL_SEC: z.coerce.number().int().positive().default(300),
+
+  SMTP_TLS_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === 'true' || v === '1'),
+  SMTP_TLS_KEY_PATH: z.string().optional(),
+  SMTP_TLS_CERT_PATH: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
