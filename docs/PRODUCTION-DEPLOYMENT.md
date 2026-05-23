@@ -82,6 +82,26 @@ Common on **small VMs (1–2 GB RAM)** when `pnpm -r build` runs **Vite + many T
 
 Check memory: `free -h`. Check OOM: `dmesg \| tail -20`.
 
+### Stuck at “Waiting for API health on port 3000…”
+
+The API is not responding on `/health` (crashed, port busy, or MongoDB/Redis unreachable).
+
+```bash
+# In another SSH session while waiting, or after Ctrl+C:
+pnpm prod:diagnose
+tail -50 logs/api.log
+```
+
+| Cause | Fix |
+|-------|-----|
+| Port 3000 in use | `pnpm dev:stop` or `fuser -k 3000/tcp` |
+| `apps/api/dist` missing | `pnpm build:prod` |
+| MongoDB down / wrong `MONGODB_URI` | `pnpm prod:infra:up` or fix `.env` |
+| API OOM / crash on start | `logs/api.log` — often invalid `.env` or Mongo timeout |
+| Remote Atlas blocked | Allow server IP in Atlas network access |
+
+After `git pull`, `prod-up` uses `node` directly (not pnpm) and prints `api.log` tail on failure.
+
 ---
 
 Use this document with:

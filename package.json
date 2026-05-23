@@ -28,6 +28,7 @@
     "prod:ui:down": "bash scripts/prod-ui-down.sh",
     "prod:down": "bash scripts/prod-down.sh",
     "prod:status": "bash scripts/prod-status.sh",
+    "prod:diagnose": "bash scripts/prod-diagnose.sh",
     "prod:infra:up": "docker compose -f docker-compose.prod.yml up -d",
     "prod:infra:down": "docker compose -f docker-compose.prod.yml down"
   },
