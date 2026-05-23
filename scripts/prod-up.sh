@@ -84,16 +84,8 @@ else
 fi
 
 if [[ "$SKIP_BUILD" -eq 0 ]]; then
-  # Exclude admin-ui here (built separately in start_admin_ui). Low-memory VMs OOM when
-  # vite + many tsc run in parallel via `pnpm -r build`.
-  BUILD_CONCURRENCY="${PROD_BUILD_CONCURRENCY:-1}"
-  log "Building runtime packages and apps (concurrency=${BUILD_CONCURRENCY}, admin-ui excluded)..."
-  log "On small VMs this can take 3–10 minutes. Set PROD_BUILD_CONCURRENCY=2 if you have 4GB+ RAM."
-  (
-    cd "$PROD_ROOT"
-    export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=2048}"
-    pnpm -r --workspace-concurrency "$BUILD_CONCURRENCY" --filter '!@arivu/admin-ui' run build
-  )
+  log "Building packages + apps (admin-ui excluded; may take 5–15 min on small VMs)..."
+  bash "$PROD_ROOT/scripts/build-prod.sh"
 fi
 
 if [[ "$SKIP_STORAGE_CHECK" -eq 0 ]]; then
