@@ -15,7 +15,7 @@ source "$PROD_ROOT/scripts/lib/prod-common.sh"
 
 SKIP_INFRA=0
 SKIP_BUILD=0
-SKIP_UI=0
+SKIP_UI=1
 SKIP_STORAGE_CHECK=0
 SKIP_INSTALL=0
 
@@ -25,7 +25,8 @@ Usage: $(basename "$0") [options]
 
   --skip-infra          Do not start docker-compose.prod.yml (use managed Mongo/Redis)
   --skip-build          Skip pnpm build (dist must already exist)
-  --skip-ui             Do not build/start admin UI
+  --with-ui             Build/start admin UI in same run (needs 4GB+ RAM)
+  --skip-ui             Do not build/start admin UI (default — use pnpm prod:ui:up later)
   --skip-storage-check  Skip OCI storage:check (not recommended)
   --skip-install        Skip pnpm install
   -h, --help            Show this help
@@ -39,6 +40,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-infra) SKIP_INFRA=1 ;;
     --skip-build) SKIP_BUILD=1 ;;
+    --with-ui) SKIP_UI=0 ;;
     --skip-ui) SKIP_UI=1 ;;
     --skip-storage-check) SKIP_STORAGE_CHECK=1 ;;
     --skip-install) SKIP_INSTALL=1 ;;
@@ -82,10 +84,15 @@ else
 fi
 
 if [[ "$SKIP_BUILD" -eq 0 ]]; then
-  log "Building packages and apps..."
+  # Exclude admin-ui here (built separately in start_admin_ui). Low-memory VMs OOM when
+  # vite + many tsc run in parallel via `pnpm -r build`.
+  BUILD_CONCURRENCY="${PROD_BUILD_CONCURRENCY:-1}"
+  log "Building runtime packages and apps (concurrency=${BUILD_CONCURRENCY}, admin-ui excluded)..."
+  log "On small VMs this can take 3–10 minutes. Set PROD_BUILD_CONCURRENCY=2 if you have 4GB+ RAM."
   (
     cd "$PROD_ROOT"
-    pnpm build
+    export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=2048}"
+    pnpm -r --workspace-concurrency "$BUILD_CONCURRENCY" --filter '!@arivu/admin-ui' run build
   )
 fi
 
@@ -105,6 +112,8 @@ start_all_apps
 
 if [[ "$SKIP_UI" -eq 0 ]]; then
   start_admin_ui
+else
+  log "Admin UI skipped (default). Start later: pnpm prod:ui:up"
 fi
 
 wait_for_api_health "${API_PORT:-3000}" 90

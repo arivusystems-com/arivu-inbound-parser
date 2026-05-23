@@ -222,8 +222,14 @@ stop_all_apps() {
 }
 
 start_admin_ui() {
+  local skip_build="${PROD_UI_SKIP_BUILD:-0}"
   local port="${ADMIN_UI_PORT:-5173}"
   local api_port="${API_PORT:-3000}"
+  local api_url
+  api_url="$(env_val VITE_API_URL "")"
+  if [[ -z "$api_url" ]]; then
+    api_url="http://127.0.0.1:${api_port}"
+  fi
   local pid
   pid="$(read_pid admin-ui || true)"
   if is_running_pid "$pid"; then
@@ -231,11 +237,19 @@ start_admin_ui() {
     return 0
   fi
 
-  log "Building admin UI (API at http://127.0.0.1:${api_port})..."
-  (
-    cd "$PROD_ROOT"
-    VITE_API_URL="http://127.0.0.1:${api_port}" pnpm --filter @arivu/admin-ui build
-  )
+  if [[ "$skip_build" -eq 0 ]]; then
+    log "Building admin UI (VITE_API_URL=${api_url})..."
+    (
+      cd "$PROD_ROOT"
+      export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=2048}"
+      VITE_API_URL="$api_url" pnpm --filter @arivu/admin-ui build
+    )
+  else
+    log "Skipping admin UI build (PROD_UI_SKIP_BUILD=1)"
+    if [[ ! -d "$PROD_ROOT/apps/admin-ui/dist" ]]; then
+      die "No apps/admin-ui/dist — run prod:ui:up without --skip-build first"
+    fi
+  fi
 
   local logfile="$PROD_LOG_DIR/admin-ui.log"
   log "Starting admin UI preview on port $port → $logfile"
@@ -274,6 +288,7 @@ EOF
 
   Stop:        pnpm prod:down
   Status:      pnpm prod:status
+  Admin UI:    pnpm prod:ui:up   (step 2 — after backends are up)
 
   Next: CRM provisions mailboxes via POST /integrations/v1/mailboxes (docs/CRM-PROVISIONING.md)
         then send a test message and confirm CRM webhook.

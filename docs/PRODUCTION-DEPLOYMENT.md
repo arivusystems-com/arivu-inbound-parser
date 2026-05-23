@@ -11,7 +11,8 @@ cp .env.example .env
 # Edit .env: NODE_ENV=production, OCI keys, MONGODB_URI, REDIS_URL, CRM_WEBHOOK_URL, SMTP_PORT, etc.
 
 pnpm prod:check    # optional pre-flight (Node, ports, storage:check)
-pnpm prod:up       # build + infra + services + admin UI
+pnpm prod:up       # build + infra + backends (no UI — Option 2 default)
+pnpm prod:ui:up    # step 2: build + start admin UI when backends are healthy
 pnpm prod:status   # PIDs, docker, API health
 # Tenants/mailboxes: CRM calls POST /integrations/v1/mailboxes (see docs/CRM-PROVISIONING.md)
 # Optional bootstrap only: pnpm prod:seed -- --tenant-id t_acme --mailbox-id m_support
@@ -28,9 +29,58 @@ pnpm prod:down -- --infra   # stop apps + MongoDB/Redis containers
 | `scripts/prod-seed.ts` | Upsert tenant + mailbox (`pnpm prod:seed`) |
 | `docker-compose.prod.yml` | MongoDB 7 + Redis 7 (persistent volumes) |
 
-**Flags for `prod-up`:** `--skip-infra` (managed Atlas/Redis), `--skip-ui`, `--skip-build`, `--skip-storage-check`.
+**Flags for `prod-up`:** `--skip-infra`, `--skip-build`, `--skip-storage-check`, `--with-ui` (single-step UI on 4GB+ VMs).
+
+### Admin UI — Option 2 (recommended on small VMs)
+
+Backends and UI are started in **two steps** so the server is not OOM during build.
+
+```bash
+# Step 1 — MongoDB, Redis, SMTP, workers, API (no admin UI)
+pnpm prod:up
+
+# Step 2 — after API is healthy (curl http://127.0.0.1:3000/health)
+pnpm prod:ui:up
+
+# Stop UI only (backends keep running)
+pnpm prod:ui:down
+
+# Rebuild UI without restarting backends
+pnpm prod:ui:up -- --skip-build   # only if dist/ already exists
+```
+
+| Command | Purpose |
+|---------|---------|
+| `pnpm prod:ui:up` | `vite build` + `vite preview` on port 5173 (default) |
+| `pnpm prod:ui:down` | Stop admin UI process |
+
+Optional `.env`:
+
+```env
+ADMIN_UI_PORT=5173
+VITE_API_URL=http://127.0.0.1:3000
+```
+
+For remote browser access via SSH tunnel, `127.0.0.1` is correct. If you serve UI another way, set `VITE_API_URL` to the API URL **as seen from the browser**.
+
+**Security:** Do not expose ports 5173/3000 on the public internet without VPN, SSH tunnel, or reverse proxy + auth.
+
+**Build:** `prod-up` runs `pnpm build:prod` (excludes admin-ui, concurrency 1 by default). On a 4GB+ VM: `PROD_BUILD_CONCURRENCY=2 pnpm prod:up`. Manual: `pnpm build:prod`.
 
 Logs: `logs/*.log`. PIDs: `.run/prod/*.pid`. For multi-node or Kubernetes, use §5 systemd/K8s instead of these scripts.
+
+### `prod-up` stuck at “Building packages and apps…”
+
+Common on **small VMs (1–2 GB RAM)** when `pnpm -r build` runs **Vite + many TypeScript compiles in parallel** and the process swaps or is OOM-killed (looks frozen).
+
+| Fix | Command |
+|-----|---------|
+| Skip operator UI (fastest) | `pnpm prod:up -- --skip-ui` |
+| Lower parallel builds (default after fix) | `PROD_BUILD_CONCURRENCY=1 pnpm prod:up` |
+| Add swap (2GB) | `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile` |
+| Build once, then start | `pnpm build:prod` then `pnpm prod:up -- --skip-build` |
+
+Check memory: `free -h`. Check OOM: `dmesg \| tail -20`.
 
 ---
 
