@@ -3,13 +3,22 @@ import express from 'express';
 import { loadConfig } from '@arivu/config';
 import { connectDatabase } from '@arivu/database';
 import { createLogger } from '@arivu/logger';
-import { createRedisConnection, getQueueStats, toBullConnection } from '@arivu/queue';
+import {
+  createQueue,
+  createRedisConnection,
+  getQueueStats,
+  toBullConnection,
+  QUEUE_NAMES,
+} from '@arivu/queue';
+import type { MimeParseJob } from '@arivu/types';
 
 const config = loadConfig();
 const log = createLogger('api');
 const redis = createRedisConnection(config.REDIS_URL, (err) => {
   log.warn({ err: err.message }, 'Redis connection error — is Docker running? (pnpm infra:up)');
 });
+const mimeParseQueue = createQueue<MimeParseJob>(QUEUE_NAMES.MIME_PARSE, toBullConnection(redis));
+
 let database: Awaited<ReturnType<typeof connectDatabase>> | null = null;
 
 async function getDb() {
@@ -66,6 +75,40 @@ app.get('/admin/messages/:id', async (req, res, next) => {
     const message = await db.messages.findOne({ _id: req.params.id });
     if (!message) return res.status(404).json({ error: 'Message not found' });
     res.json({ message });
+  } catch (err) {
+    next(err);
+  }
+});
+
+app.post('/admin/messages/:id/replay', async (req, res, next) => {
+  try {
+    const db = await getDb();
+    const message = await db.messages.findOne({ _id: req.params.id });
+    if (!message) return res.status(404).json({ error: 'Message not found' });
+    if (!message.rawMimePath) {
+      return res.status(400).json({ error: 'Message has no raw MIME path — cannot replay' });
+    }
+
+    const job: MimeParseJob = {
+      messageId: message._id,
+      tenantId: message.tenantId,
+      mailboxId: message.mailboxId,
+      rawMimePath: message.rawMimePath,
+    };
+
+    await mimeParseQueue.add('parse', job, {
+      jobId: `${message._id}-replay-${Date.now()}`,
+      removeOnComplete: 1000,
+      removeOnFail: 5000,
+    });
+
+    await db.messages.updateOne(
+      { _id: message._id },
+      { $set: { processingStatus: 'queued' }, $unset: { errorMessage: '' } },
+    );
+
+    log.info({ messageId: message._id }, 'Parse replay enqueued');
+    res.json({ ok: true, messageId: message._id, status: 'queued' });
   } catch (err) {
     next(err);
   }

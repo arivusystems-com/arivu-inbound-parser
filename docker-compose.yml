@@ -11,7 +11,15 @@ services:
     ports:
       - '6379:6379'
 
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+
+  # Optional local S3-compatible storage (not used when OCI is configured)
   minio:
+    profiles: ['minio']
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     ports:
@@ -24,6 +32,7 @@ services:
       - minio_data:/data
 
   minio-init:
+    profiles: ['minio']
     image: minio/mc:latest
     depends_on:
       - minio
@@ -34,12 +43,6 @@ services:
       mc mb -p local/arivu-inbound || true;
       exit 0;
       "
-
-  mailhog:
-    image: mailhog/mailhog:latest
-    ports:
-      - '1025:1025'
-      - '8025:8025'
 
 volumes:
   mongodb_data:

@@ -69,7 +69,7 @@ You can point `.env` at existing services instead:
 |----------|-------------------------|
 | `MONGODB_URI` | `mongodb://localhost:27017/arivu-inbound` |
 | `REDIS_URL` | `redis://localhost:6379` |
-| `STORAGE_*` | MinIO or OCI credentials you already run |
+| `STORAGE_*` | OCI Object Storage (required) — see [OCI-STORAGE.md](./docs/OCI-STORAGE.md) |
 
 Install locally (Ubuntu): `sudo apt install mongodb redis-server` and run [MinIO](https://min.io/docs/minio/linux/index.html) separately, or use cloud MongoDB Atlas + Upstash Redis + OCI bucket for dev.
 
@@ -83,9 +83,20 @@ pnpm infra:up
 # or: docker compose up -d
 ```
 
-Starts MongoDB, Redis, MinIO (S3-compatible), and MailHog.
+Starts MongoDB, Redis, and MailHog. **Object storage uses OCI** — configure `STORAGE_*` in `.env` (see [OCI setup](./docs/OCI-STORAGE.md)).
 
-### 2. Install & build
+### 2. OCI Object Storage
+
+Copy `.env.example` to `.env` and set your OCI S3-compatible credentials:
+
+```bash
+cp .env.example .env
+# Edit STORAGE_ENDPOINT, STORAGE_ACCESS_KEY, STORAGE_SECRET_KEY, STORAGE_BUCKET
+```
+
+Full steps: **[docs/OCI-STORAGE.md](./docs/OCI-STORAGE.md)**
+
+### 3. Install & build
 
 ```bash
 pnpm install
@@ -93,7 +104,7 @@ pnpm build
 pnpm seed
 ```
 
-### 3. Run services
+### 4. Run services
 
 ```bash
 pnpm dev:core
@@ -112,9 +123,10 @@ pnpm --filter @arivu/admin-ui dev
 | API | http://localhost:3000 |
 | SMTP ingest | `localhost:2525` |
 | MailHog UI | http://localhost:8025 |
-| MinIO console | http://localhost:9001 |
 
-### 4. Send a test email
+Object storage: **OCI bucket** (see [OCI-STORAGE.md](./docs/OCI-STORAGE.md))
+
+### 5. Send a test email
 
 Use any SMTP client (swaks, nodemailer, etc.) to deliver to the dev routing address:
 
@@ -131,7 +143,7 @@ swaks --to support+t_123_m_45@reply.arivusystems.com \
   --body "Hello from test"
 ```
 
-Then open the Admin UI → **Messages** or **Dashboard**.
+Then open the Admin UI → **Messages** → click a row for **detail + replay parse**.
 
 ## Monorepo layout
 
@@ -148,7 +160,7 @@ packages/
   config/            Zod env validation
   logger/            Pino logging
   database/          MongoDB client + indexes
-  storage/           OCI/MinIO object storage
+  storage/           OCI Object Storage (S3-compatible API)
   queue/             BullMQ helpers
   routing/           Plus-address parser
   events/            CRM event schemas
@@ -156,6 +168,7 @@ packages/
 
 ## Docs
 
+- [OCI Object Storage setup](./docs/OCI-STORAGE.md)
 - [Detailed requirements](./Arivu%20Inbound%20Parser%20-%20Detailed%20Requir.md)
 - [Implementation roadmap](./ROADMAP.md)
 
