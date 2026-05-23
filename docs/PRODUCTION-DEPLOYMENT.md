@@ -69,6 +69,35 @@ For remote browser access via SSH tunnel, `127.0.0.1` is correct. If you serve U
 
 Logs: `logs/*.log`. PIDs: `.run/prod/*.pid`. For multi-node or Kubernetes, use §5 systemd/K8s instead of these scripts.
 
+### `build:prod` stuck at `@arivu/types` / `tsc`
+
+On **1–2 GB RAM** VMs, TypeScript looks frozen for **10–20 minutes** (heavy swap). It is often not dead.
+
+```bash
+# Another terminal — is tsc working?
+ps aux | grep tsc
+free -h
+
+# Add 2GB swap (strongly recommended once per server)
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+
+# Pull latest build script (single `tsc -b` pass — less memory than 15 separate builds)
+git pull
+export NODE_OPTIONS=--max-old-space-size=1536
+pnpm build:prod
+```
+
+**Alternative:** build on your laptop, copy to server:
+
+```bash
+# Laptop
+pnpm build:prod
+rsync -avz --exclude node_modules ./ ubuntu@email-parser-vnic:~/arivu-inbound-parser/
+
+# Server — skip build
+pnpm prod:up -- --skip-build
+```
+
 ### `prod-up` stuck at “Building packages and apps…”
 
 Common on **small VMs (1–2 GB RAM)** when `pnpm -r build` runs **Vite + many TypeScript compiles in parallel** and the process swaps or is OOM-killed (looks frozen).
