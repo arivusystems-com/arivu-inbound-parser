@@ -30,8 +30,8 @@ show_service() {
   fi
 }
 
-for entry in "${PROD_SERVICES[@]}"; do
-  show_service "${entry%%:*}"
+for name in "${PROD_SERVICES[@]}"; do
+  show_service "$name"
 done
 show_service admin-ui
 

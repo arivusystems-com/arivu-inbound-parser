@@ -116,5 +116,5 @@ else
   log "Admin UI skipped (default). Start later: pnpm prod:ui:up"
 fi
 
-wait_for_api_health "${API_PORT:-3000}" 90
+wait_for_api_health "${API_PORT:-3000}" 120
 print_summary

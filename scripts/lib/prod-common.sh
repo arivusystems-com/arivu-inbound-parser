@@ -11,13 +11,18 @@ PROD_PID_DIR="${PROD_PID_DIR:-$PROD_ROOT/.run/prod}"
 PROD_LOG_DIR="${PROD_LOG_DIR:-$PROD_ROOT/logs}"
 PROD_COMPOSE_FILE="${PROD_COMPOSE_FILE:-$PROD_ROOT/docker-compose.prod.yml}"
 
+# Service name → node entry (run from PROD_ROOT; avoids pnpm wrapper PID issues)
 PROD_SERVICES=(
-  'smtp-server:@arivu/smtp-server'
-  'parser-worker:@arivu/parser-worker'
-  'attachment-worker:@arivu/attachment-worker'
-  'event-dispatcher:@arivu/event-dispatcher'
-  'api:@arivu/api'
+  smtp-server
+  parser-worker
+  attachment-worker
+  event-dispatcher
+  api
 )
+
+service_entry() {
+  echo "$PROD_ROOT/apps/$1/dist/index.js"
+}
 
 log() {
   printf '[prod] %s\n' "$*"
@@ -118,20 +123,109 @@ wait_for_tcp() {
   die "Timed out waiting for $label"
 }
 
+is_service_running() {
+  local name=$1
+  local pid
+  pid="$(read_pid "$name" || true)"
+  is_running_pid "$pid"
+}
+
+show_log_tail() {
+  local logfile=$1
+  local lines=${2:-40}
+  if [[ -f "$logfile" ]]; then
+    printf '[prod] --- last %s lines of %s ---\n' "$lines" "$logfile"
+    tail -n "$lines" "$logfile" || true
+    printf '[prod] --- end ---\n'
+  else
+    warn "Log file not found: $logfile"
+  fi
+}
+
+diagnose_api_failure() {
+  local port=${1:-3000}
+  local logfile="$PROD_LOG_DIR/api.log"
+
+  warn "API health check failed on port $port"
+  if is_service_running api; then
+    log "api process is running (pid $(read_pid api))"
+  else
+    warn "api process is NOT running"
+  fi
+
+  if command -v ss >/dev/null 2>&1; then
+    log "Listeners on :${port}:"
+    ss -tlnp 2>/dev/null | grep ":${port} " || warn "nothing listening on ${port}"
+  fi
+
+  show_log_tail "$logfile" 50
+
+  cat <<EOF
+[prod] Common fixes:
+  - Port in use:        pnpm dev:stop   OR   fuser -k ${port}/tcp
+  - MongoDB unreachable: check MONGODB_URI in .env (docker: pnpm prod:infra:up)
+  - Missing build:      pnpm build:prod
+  - See full log:       tail -f ${logfile}
+  - Diagnose:           pnpm prod:diagnose
+EOF
+}
+
 wait_for_api_health() {
   local port=${1:-3000}
-  local timeout=${2:-60}
+  local timeout=${2:-120}
   local i=0
-  log "Waiting for API health on port $port..."
+  log "Waiting for API health on port $port (up to ${timeout}s)..."
   while [[ $i -lt $timeout ]]; do
     if curl -sf "http://127.0.0.1:${port}/health" >/dev/null 2>&1; then
       log "API health OK"
       return 0
     fi
+    if (( i > 0 && i % 10 == 0 )); then
+      if ! is_service_running api; then
+        diagnose_api_failure "$port"
+        die "API process exited before becoming healthy"
+      fi
+      log "Still waiting for /health (${i}s elapsed)..."
+    fi
     sleep 2
     i=$((i + 2))
   done
-  die "API did not become healthy on port $port (see $PROD_LOG_DIR/api.log)"
+  diagnose_api_failure "$port"
+  die "API did not become healthy within ${timeout}s"
+}
+
+verify_production_builds() {
+  local name entry
+  local missing=0
+  for name in "${PROD_SERVICES[@]}"; do
+    entry="$(service_entry "$name")"
+    if [[ ! -f "$entry" ]]; then
+      warn "Missing build output: $entry"
+      missing=1
+    fi
+  done
+  if [[ $missing -eq 1 ]]; then
+    die "Build outputs missing — run: pnpm build:prod"
+  fi
+}
+
+preflight_datastores() {
+  load_env_defaults
+  local mongo_uri redis_url
+  mongo_uri="$(env_val MONGODB_URI "")"
+  redis_url="$(env_val REDIS_URL "")"
+
+  if [[ "$mongo_uri" == *127.0.0.1* || "$mongo_uri" == *localhost* ]]; then
+    wait_for_tcp 127.0.0.1 27017 "MongoDB (from MONGODB_URI)" 30
+  else
+    log "MONGODB_URI is remote — ensure it is reachable from this host"
+  fi
+
+  if [[ "$redis_url" == *127.0.0.1* || "$redis_url" == *localhost* ]]; then
+    wait_for_tcp 127.0.0.1 6379 "Redis (from REDIS_URL)" 30
+  else
+    log "REDIS_URL is remote — ensure it is reachable from this host"
+  fi
 }
 
 compose_cmd() {
@@ -158,25 +252,30 @@ stop_infra() {
 }
 
 start_app_service() {
-  local name=$1 filter=$2
-  local pid
+  local name=$1
+  local entry pid logfile
+  entry="$(service_entry "$name")"
   pid="$(read_pid "$name" || true)"
   if is_running_pid "$pid"; then
     log "$name already running (pid $pid)"
     return 0
   fi
+  if [[ ! -f "$entry" ]]; then
+    die "Missing $entry — run pnpm build:prod"
+  fi
 
-  local logfile="$PROD_LOG_DIR/$name.log"
+  logfile="$PROD_LOG_DIR/$name.log"
   log "Starting $name → $logfile"
   (
     cd "$PROD_ROOT"
-    exec pnpm --filter "$filter" start
+    exec node "$entry"
   ) >>"$logfile" 2>&1 &
   pid=$!
   echo "$pid" >"$PROD_PID_DIR/$name.pid"
-  sleep 1
+  sleep 2
   if ! is_running_pid "$pid"; then
-    die "$name exited immediately. Check $logfile"
+    show_log_tail "$logfile" 30
+    die "$name exited immediately — see $logfile"
   fi
   log "$name started (pid $pid)"
 }
@@ -204,12 +303,13 @@ stop_app_service() {
 }
 
 start_all_apps() {
-  local entry
-  for entry in "${PROD_SERVICES[@]}"; do
-    local name="${entry%%:*}"
-    local filter="${entry##*:}"
-    start_app_service "$name" "$filter"
+  local name
+  verify_production_builds
+  preflight_datastores
+  for name in "${PROD_SERVICES[@]}"; do
+    start_app_service "$name"
   done
+  log "All services launched — API may take up to 30s to connect to MongoDB and listen"
 }
 
 stop_all_apps() {

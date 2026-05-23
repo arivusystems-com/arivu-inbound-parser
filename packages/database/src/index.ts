@@ -15,7 +15,10 @@ let client: MongoClient | null = null;
 
 export async function connectDatabase(uri: string): Promise<DatabaseClient> {
   if (!client) {
-    client = new MongoClient(uri);
+    client = new MongoClient(uri, {
+      serverSelectionTimeoutMS: 15_000,
+      connectTimeoutMS: 15_000,
+    });
     await client.connect();
   }
 
