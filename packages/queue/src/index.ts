@@ -14,7 +14,7 @@ import { buildDefaultJobOptions } from './job-options.js';
 import { moveJobToDeadLetter } from './dlq.js';
 
 export { buildDefaultJobOptions } from './job-options.js';
-export { listDeadLetterJobs, requeueDeadLetterJob, moveJobToDeadLetter } from './dlq.js';
+export { listDeadLetterJobs, requeueDeadLetterJob, removeDeadLetterJob, moveJobToDeadLetter } from './dlq.js';
 
 export function createRedisConnection(redisUrl: string, onError?: (err: Error) => void): RedisClient {
   const redis = new Redis(redisUrl, {

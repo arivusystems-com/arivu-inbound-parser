@@ -478,6 +478,19 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
     }
 
+    # CRM provisioning + admin fetch (see docs/CRM-PROVISIONING.md)
+    location /integrations/ {
+        proxy_pass http://127.0.0.1:3000/integrations/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location /admin/ {
+        proxy_pass http://127.0.0.1:3000/admin/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
     location / {
         root /opt/arivu-inbound-parser/apps/admin-ui/dist;
         try_files $uri $uri/ /index.html;

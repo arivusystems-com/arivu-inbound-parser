@@ -43,6 +43,50 @@ Use a **private network** or VPN in production; do not expose port 3000 publicly
 
 ---
 
+## Production URL (important)
+
+| Hostname | Purpose | CRM HTTP calls? |
+|----------|---------|-----------------|
+| `reply.arivusystems.com` | **SMTP / MX / email only** | **No** — HTTPS here often 404 |
+| `parser-api.arivusystems.com` (recommended) | **HTTP API** for CRM | **Yes** |
+
+`reply.*` receives **mail** (port 25/587). The provisioning API runs on the **Node API** (port 3000) and must be exposed via **nginx** on a separate subdomain (or internal URL).
+
+### 1. Verify API on the parser server
+
+```bash
+curl -sf http://127.0.0.1:3000/health
+curl -sS -w "\nHTTP: %{http_code}\n" -X POST http://127.0.0.1:3000/integrations/v1/mailboxes \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $CRM_API_KEY" \
+  -d '{"tenantId":"t_test","mailboxId":"m_test","mailboxName":"Test","type":"private"}'
+```
+
+Expect **200** locally. If this fails, fix `pnpm prod:status` / `logs/api.log` first.
+
+### 2. Expose via nginx (HTTPS)
+
+Example config: [deploy/nginx-parser-api.conf.example](../deploy/nginx-parser-api.conf.example)
+
+```bash
+sudo cp deploy/nginx-parser-api.conf.example /etc/nginx/sites-available/arivu-parser-api
+sudo ln -sf /etc/nginx/sites-available/arivu-parser-api /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+DNS: `parser-api.arivusystems.com` → parser server IP.
+
+### 3. CRM calls the API host, not the mail host
+
+```http
+POST https://parser-api.arivusystems.com/integrations/v1/mailboxes
+Authorization: Bearer <CRM_API_KEY>
+```
+
+Set in CRM: `PARSER_API_URL=https://parser-api.arivusystems.com`
+
+---
+
 ## Register tenant + mailbox (main endpoint)
 
 When CRM creates a virtual mailbox, call this **before** the user enables forwarding.

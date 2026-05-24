@@ -23,6 +23,9 @@ body {
   background: #0f172a;
   color: #e2e8f0;
   padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 .sidebar h1 {
@@ -232,6 +235,16 @@ td {
   background: #1e293b;
 }
 
+.btn-danger {
+  background: #b91c1c;
+  color: #fff;
+  border-color: #991b1b;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #991b1b;
+}
+
 .btn-sm {
   padding: 0.25rem 0.5rem;
   font-size: 0.8rem;
@@ -302,4 +315,61 @@ table a {
 
 .small {
   font-size: 0.8rem;
+}
+
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  padding: 1rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 360px;
+}
+
+.login-card h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.login-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 1rem 0 0;
+  font-size: 0.875rem;
+}
+
+.login-card input {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.login-card .btn-primary {
+  width: 100%;
+  margin-top: 1.25rem;
+}
+
+.sidebar-logout {
+  margin-top: auto;
+  width: 100%;
+  color: #e2e8f0;
+  border-color: #475569;
+  background: transparent;
+}
+
+.sidebar-logout:hover:not(:disabled) {
+  background: #1e293b;
+}
+
+.actions-cell {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
 }

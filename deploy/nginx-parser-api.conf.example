@@ -1,0 +1,48 @@
+# Example nginx vhost for CRM → parser HTTP API (HTTPS).
+# Install: copy to /etc/nginx/sites-available/arivu-parser-api
+#
+# DNS: parser-api.arivusystems.com → your parser server public IP
+# Do NOT use reply.arivusystems.com — that hostname is for SMTP/MX mail only.
+
+server {
+    listen 443 ssl http2;
+    server_name parser-api.arivusystems.com;
+
+    ssl_certificate     /etc/ssl/certs/parser-api.pem;
+    ssl_certificate_key /etc/ssl/private/parser-api.key;
+
+    # Restrict to CRM server IP(s) — replace with your CRM egress IP(s)
+    # allow 203.0.113.50;
+    # deny all;
+
+    client_max_body_size 1m;
+
+    # CRM provisioning (POST /integrations/v1/mailboxes)
+    location /integrations/ {
+        proxy_pass http://127.0.0.1:3000/integrations/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Optional: CRM fetch message content (MVP — protect with IP allowlist + future auth)
+    location /admin/ {
+        proxy_pass http://127.0.0.1:3000/admin/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location /health {
+        proxy_pass http://127.0.0.1:3000/health;
+    }
+}
+
+# Redirect HTTP → HTTPS
+server {
+    listen 80;
+    server_name parser-api.arivusystems.com;
+    return 301 https://$host$request_uri;
+}

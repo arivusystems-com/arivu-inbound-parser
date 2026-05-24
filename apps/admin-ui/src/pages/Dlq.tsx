@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchJson, postJson } from '../api';
+import { confirmDelete, deleteJson, fetchJson, postJson } from '../api';
 
 interface DlqJob {
   id: string;
@@ -22,6 +22,7 @@ export function DlqPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [requeueId, setRequeueId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   function load() {
     setLoading(true);
@@ -47,6 +48,19 @@ export function DlqPage() {
     }
   }
 
+  async function deleteJob(jobId: string) {
+    if (!confirmDelete('Remove this job from the dead letter queue?')) return;
+    setDeletingId(jobId);
+    try {
+      await deleteJson(`/admin/dlq/${jobId}`);
+      load();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Delete failed');
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   if (error) return <p className="error">{error}</p>;
 
   return (
@@ -63,7 +77,7 @@ export function DlqPage() {
               <th>Message</th>
               <th>Error</th>
               <th>Attempts</th>
-              <th></th>
+              <th />
             </tr>
           </thead>
           <tbody>
@@ -80,14 +94,22 @@ export function DlqPage() {
                 </td>
                 <td className="small">{job.data.error}</td>
                 <td>{job.data.attemptsMade}</td>
-                <td>
+                <td className="actions-cell">
                   <button
                     type="button"
-                    className="btn"
+                    className="btn btn-sm"
                     disabled={requeueId === job.id}
                     onClick={() => requeue(job.id)}
                   >
                     {requeueId === job.id ? '…' : 'Requeue'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm"
+                    disabled={deletingId === job.id}
+                    onClick={() => deleteJob(job.id)}
+                  >
+                    {deletingId === job.id ? '…' : 'Delete'}
                   </button>
                 </td>
               </tr>

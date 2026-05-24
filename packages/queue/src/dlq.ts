@@ -56,6 +56,20 @@ export async function listDeadLetterJobs(
   }
 }
 
+export async function removeDeadLetterJob(
+  connection: ConnectionOptions,
+  dlqJobId: string,
+): Promise<void> {
+  const dlq = new Queue<DeadLetterJob>(QUEUE_NAMES.DEAD_LETTER, { connection });
+  try {
+    const job = await dlq.getJob(dlqJobId);
+    if (!job) throw new Error(`DLQ job not found: ${dlqJobId}`);
+    await job.remove();
+  } finally {
+    await dlq.close();
+  }
+}
+
 export async function requeueDeadLetterJob(
   connection: ConnectionOptions,
   dlqJobId: string,
