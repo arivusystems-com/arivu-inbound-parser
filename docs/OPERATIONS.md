@@ -7,16 +7,18 @@ Internal console for monitoring ingest, debugging failures, and recovering stuck
 | Page | URL | Purpose |
 |------|-----|---------|
 | Dashboard | `/` | Message counts, DLQ depth, queue backlog, 24h ingest |
-| Messages | `/messages` | Browse/filter inbound mail |
-| Message detail | `/messages/:id` | Bodies, attachments, replay parse, redispatch CRM event |
-| Failures | `/failures` | `failed` and `duplicate` messages |
-| DLQ | `/dlq` | Jobs that exhausted retries — requeue to original queue |
+| Messages | `/messages` | Browse/filter inbound mail — delete individually or in bulk |
+| Message detail | `/messages/:id` | Bodies, attachments, replay, redispatch CRM event, delete |
+| Failures | `/failures` | `failed` and `duplicate` messages — replay or delete |
+| DLQ | `/dlq` | Jobs that exhausted retries — requeue or delete |
 | Queues | `/queues` | BullMQ depths per queue |
-| Mailboxes | `/mailboxes` | Routing addresses for forwarding setup |
+| Mailboxes | `/mailboxes` | Tenants and routing addresses — delete empty mailboxes/tenants |
 | Logs | `/logs` | Tail `logs/arivu.log` (JSON lines from all services) |
 
 Start UI: `pnpm --filter @arivu/admin-ui dev`  
 API base: `http://localhost:3000` (proxied as `/api` in dev)
+
+When `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET` are set in `.env`, the UI shows a login screen. Use **Sign out** in the sidebar to end the session.
 
 ## Processing statuses
 
@@ -32,6 +34,13 @@ API base: `http://localhost:3000` (proxied as `/api` in dev)
 | `duplicate` | Same RFC Message-ID already in mailbox — no CRM event |
 
 ## Common tasks
+
+### Delete test data
+
+- **Messages** — per-row **Delete**, or filter by tenant/mailbox and **Delete filtered**
+- **Failures** / **Message detail** — **Delete** removes MongoDB records and OCI files
+- **DLQ** — **Delete** removes a dead-letter job without requeue
+- **Mailboxes** — delete empty mailboxes first, then empty tenants (409 if messages remain)
 
 ### Replay a failed parse
 

@@ -110,6 +110,17 @@ const envSchema = z.object({
     .optional()
     .transform((v) => (v && v.trim().length > 0 ? v.trim() : undefined)),
 
+  /** Admin UI login — when both password and session secret are set, /admin/* requires auth. */
+  ADMIN_USERNAME: z.string().default('admin'),
+  ADMIN_PASSWORD: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim().length > 0 ? v.trim() : undefined)),
+  ADMIN_SESSION_SECRET: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.trim().length > 0 ? v.trim() : undefined)),
+
   QUEUE_MAX_ATTEMPTS: z.coerce.number().int().positive().default(3),
   QUEUE_BACKOFF_MS: z.coerce.number().int().positive().default(2000),
 
@@ -162,4 +173,8 @@ export function loadConfig(overrides?: Partial<Record<keyof Env, string>>): Env 
 
 export function resetConfigCache(): void {
   cached = null;
+}
+
+export function isAdminAuthEnabled(config: Env): boolean {
+  return Boolean(config.ADMIN_PASSWORD && config.ADMIN_SESSION_SECRET);
 }

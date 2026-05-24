@@ -43,6 +43,32 @@ Blocks dangerous extensions (`.exe`, `.bat`, `.js`, …) and suspicious double e
 
 Not included in this phase. Integrate ClamAV or a cloud scanner as a post-store hook before `event-dispatch` when required.
 
+## Admin UI authentication
+
+Protects `/admin/*` API routes and the operator console when credentials are configured.
+
+| Variable | Purpose |
+|----------|---------|
+| `ADMIN_USERNAME` | Login username (default: `admin`) |
+| `ADMIN_PASSWORD` | Login password |
+| `ADMIN_SESSION_SECRET` | HMAC key for session tokens (`openssl rand -hex 32`) |
+
+Auth is **enabled** only when **both** `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET` are set. If either is missing, admin routes remain open (local dev default).
+
+The UI stores the session token in `sessionStorage` and sends `Authorization: Bearer <token>` on each request. Use **Sign out** in the sidebar to clear the session.
+
+## Delete operations (admin)
+
+For testing and cleanup, authenticated admins can delete:
+
+| Resource | Endpoint | Notes |
+|----------|----------|-------|
+| Message | `DELETE /admin/messages/:id` | Removes MongoDB record, attachments, and OCI objects |
+| Messages (bulk) | `DELETE /admin/messages?tenantId=&mailboxId=` | Requires at least one filter |
+| Mailbox | `DELETE /admin/mailboxes/:id?tenantId=` | Blocked if messages exist |
+| Tenant | `DELETE /admin/tenants/:id` | Blocked if mailboxes or messages exist |
+| DLQ job | `DELETE /admin/dlq/:jobId` | Removes job from dead letter queue |
+
 ## Production checklist
 
 1. Set `SECURITY_AUTH_MODE=monitor`, observe `authResults` for real mail.
@@ -51,6 +77,7 @@ Not included in this phase. Integrate ClamAV or a cloud scanner as a post-store 
 4. Enable `SMTP_TLS_ENABLED` with valid certificates behind your MTA/LB.
 5. Set conservative rate limits per expected volume.
 6. Optional: `SECURITY_GREYLIST_ENABLED=true` for spam reduction (may delay legitimate retries).
+7. Set `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET` so the admin UI requires login.
 
 ## Related
 

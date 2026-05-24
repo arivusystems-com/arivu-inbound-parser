@@ -11,6 +11,7 @@
     { "path": "../../packages/database" },
     { "path": "../../packages/queue" },
     { "path": "../../packages/routing" },
+    { "path": "../../packages/storage" },
     { "path": "../../packages/types" }
   ],
   "include": ["src/**/*"]

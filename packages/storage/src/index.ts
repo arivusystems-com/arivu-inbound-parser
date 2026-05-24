@@ -3,6 +3,7 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import type { Env } from '@arivu/config';
 import { Readable } from 'node:stream';
@@ -21,6 +22,8 @@ export interface ObjectStorage {
     body: Buffer,
     contentType: string,
   ): Promise<string>;
+  /** Best-effort delete (ignores missing keys). */
+  deleteObject(key: string): Promise<void>;
   rawMimePath(tenantId: string, messageId: string): string;
   attachmentPath(tenantId: string, attachmentId: string): string;
 }
@@ -114,6 +117,12 @@ export function createObjectStorage(config: Pick<
     async putAttachment(tenantId, attachmentId, body, contentType) {
       const key = `attachments/${tenantId}/${attachmentId}`;
       return put(key, body, contentType);
+    },
+
+    async deleteObject(key) {
+      await s3
+        .send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
+        .catch(() => undefined);
     },
   };
 }

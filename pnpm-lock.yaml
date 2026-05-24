@@ -84,6 +84,9 @@ importers:
       '@arivu/routing':
         specifier: workspace:*
         version: link:../../packages/routing
+      '@arivu/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@arivu/types':
         specifier: workspace:*
         version: link:../../packages/types

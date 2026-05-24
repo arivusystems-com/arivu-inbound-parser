@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { fetchJson, postJson } from '../api';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { confirmDelete, deleteJson, fetchJson, postJson } from '../api';
 import { type MessageDetail, statusClass } from '../types';
 
 function formatAddresses(list: { address: string; name?: string }[]): string {
@@ -16,6 +16,7 @@ function formatBytes(n: number): string {
 
 export function MessageDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [message, setMessage] = useState<MessageDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,6 +24,7 @@ export function MessageDetailPage() {
   const [replayMsg, setReplayMsg] = useState<string | null>(null);
   const [redispatching, setRedispatching] = useState(false);
   const [redispatchMsg, setRedispatchMsg] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(() => {
     if (!id) return;
@@ -68,6 +70,19 @@ export function MessageDetailPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!id) return;
+    if (!confirmDelete('Delete this message and its OCI files? This cannot be undone.')) return;
+    setDeleting(true);
+    try {
+      await deleteJson(`/admin/messages/${id}`);
+      navigate('/messages');
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Delete failed');
+      setDeleting(false);
+    }
+  }
+
   if (loading) return <p className="muted">Loading message…</p>;
   if (error) return <p className="error">{error}</p>;
   if (!message) return <p className="error">Message not found</p>;
@@ -102,6 +117,14 @@ export function MessageDetailPage() {
               {redispatching ? 'Queuing…' : 'Redispatch CRM event'}
             </button>
           )}
+          <button
+            type="button"
+            className="btn btn-danger"
+            disabled={deleting}
+            onClick={handleDelete}
+          >
+            {deleting ? 'Deleting…' : 'Delete'}
+          </button>
         </div>
       </div>
 

@@ -1,4 +1,5 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
+import { useAuth } from './auth/AuthContext';
 import { DashboardPage } from './pages/Dashboard';
 import { MessagesPage } from './pages/Messages';
 import { MessageDetailPage } from './pages/MessageDetail';
@@ -19,6 +20,8 @@ const nav = [
 ];
 
 export function App() {
+  const { logout, authEnabled } = useAuth();
+
   return (
     <div className="layout">
       <aside className="sidebar">
@@ -30,6 +33,11 @@ export function App() {
             </NavLink>
           ))}
         </nav>
+        {authEnabled && (
+          <button type="button" className="btn btn-sm sidebar-logout" onClick={logout}>
+            Sign out
+          </button>
+        )}
       </aside>
       <main className="content">
         <Routes>

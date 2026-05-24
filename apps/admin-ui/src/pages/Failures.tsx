@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchJson, postJson } from '../api';
+import { confirmDelete, deleteJson, fetchJson, postJson } from '../api';
 
 interface Failure {
   _id: string;
@@ -15,6 +15,7 @@ export function FailuresPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [replayingId, setReplayingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   function load() {
     setLoading(true);
@@ -37,6 +38,19 @@ export function FailuresPage() {
       alert(e instanceof Error ? e.message : 'Replay failed');
     } finally {
       setReplayingId(null);
+    }
+  }
+
+  async function deleteOne(id: string) {
+    if (!confirmDelete('Delete this failed message and its OCI files?')) return;
+    setDeletingId(id);
+    try {
+      await deleteJson(`/admin/messages/${id}`);
+      load();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Delete failed');
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -78,7 +92,7 @@ export function FailuresPage() {
                 <td>{f.processingStatus}</td>
                 <td className="error-cell">{f.errorMessage || '—'}</td>
                 <td>{new Date(f.receivedAt).toLocaleString()}</td>
-                <td>
+                <td className="actions-cell">
                   <button
                     type="button"
                     className="btn btn-sm"
@@ -86,6 +100,14 @@ export function FailuresPage() {
                     onClick={() => replay(f._id)}
                   >
                     {replayingId === f._id ? '…' : 'Replay'}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger btn-sm"
+                    disabled={deletingId === f._id}
+                    onClick={() => deleteOne(f._id)}
+                  >
+                    {deletingId === f._id ? '…' : 'Delete'}
                   </button>
                 </td>
               </tr>
