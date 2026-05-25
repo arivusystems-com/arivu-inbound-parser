@@ -96,6 +96,21 @@ export function createIntegrationRouter(
     }
   });
 
+  /** CRM fetch after email.received webhook (CRM_API_KEY — not admin UI session). */
+  router.get('/messages/:messageId', async (req, res, next) => {
+    try {
+      const db = await getDb();
+      const message = await db.messages.findOne({ _id: req.params.messageId });
+      if (!message) {
+        res.status(404).json({ error: 'Message not found' });
+        return;
+      }
+      res.json({ message });
+    } catch (err) {
+      next(err);
+    }
+  });
+
   router.get('/mailboxes/:mailboxId', async (req, res, next) => {
     try {
       const tenantId = typeof req.query.tenantId === 'string' ? req.query.tenantId : undefined;

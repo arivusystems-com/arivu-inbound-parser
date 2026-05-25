@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { Request, Response, NextFunction } from 'express';
 import { isAdminAuthEnabled, type Env } from '@arivu/config';
+import { extractApiKey } from '../integration/auth.js';
 
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -52,20 +53,36 @@ export function extractBearerToken(req: Request): string | undefined {
   return undefined;
 }
 
-export function requireAdminAuth(config: Env) {
+function verifyCrmApiKey(req: Request, config: Env): boolean {
+  const expected = config.CRM_API_KEY;
+  if (!expected) return false;
+  const provided = extractApiKey(req);
+  if (!provided) return false;
+  return safeEqualString(provided, expected);
+}
+
+/** Admin UI session token, or CRM_API_KEY for server-to-server (LiteDesk message fetch). */
+export function requireAdminOrCrmAuth(config: Env) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!isAdminAuthEnabled(config)) {
       next();
       return;
     }
-    const token = extractBearerToken(req);
-    if (!verifyAdminToken(token, config)) {
-      res.status(401).json({ error: 'Unauthorized' });
+    if (verifyCrmApiKey(req, config)) {
+      next();
       return;
     }
-    next();
+    const token = extractBearerToken(req);
+    if (verifyAdminToken(token, config)) {
+      next();
+      return;
+    }
+    res.status(401).json({ error: 'Unauthorized' });
   };
 }
+
+/** @deprecated Use requireAdminOrCrmAuth — kept for tests referencing the old name. */
+export const requireAdminAuth = requireAdminOrCrmAuth;
 
 export function handleAdminLogin(config: Env) {
   return (req: Request, res: Response): void => {

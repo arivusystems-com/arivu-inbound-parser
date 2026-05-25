@@ -16,7 +16,7 @@ import {
 } from '@arivu/queue';
 import { createObjectStorage } from '@arivu/storage';
 import type { EventDispatchJob, MimeParseJob } from '@arivu/types';
-import { handleAdminLogin, requireAdminAuth } from './auth.js';
+import { handleAdminLogin, requireAdminOrCrmAuth } from './auth.js';
 
 type RedisClient = ReturnType<typeof createRedisConnection>;
 
@@ -44,7 +44,7 @@ export function createAdminRouter(deps: AdminRouterDeps): Router {
 
   router.post('/auth/login', handleAdminLogin(config));
 
-  router.use(requireAdminAuth(config));
+  router.use(requireAdminOrCrmAuth(config));
 
   router.get('/stats', async (_req, res, next) => {
     try {
