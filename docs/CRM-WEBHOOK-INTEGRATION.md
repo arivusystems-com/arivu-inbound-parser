@@ -268,8 +268,11 @@ The webhook does **not** include subject, body, from, or attachments.
 After receiving the webhook, fetch details:
 
 ```http
-GET http://<parser-api-host>:3000/admin/messages/{messageId}
+GET http://<parser-api-host>:3000/integrations/v1/messages/{messageId}
+Authorization: Bearer <CRM_API_KEY>
 ```
+
+(`GET /admin/messages/{messageId}` is for the **admin UI** and requires an admin session token when `ADMIN_PASSWORD` is set — not `CRM_API_KEY`.)
 
 Example response fields useful to CRM:
 
