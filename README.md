@@ -254,3 +254,24 @@ Or manually:
 ss -tlnp | grep -E '3000|2525'
 fuser -k 3000/tcp 2525/tcp
 ```
+
+### App stops working after hours/days (needs restart)
+
+Common causes and checks:
+
+```bash
+pnpm prod:status          # any service "stopped"?
+pnpm prod:diagnose        # /health/ready vs /health
+tail -50 logs/api.log     # MongoDB/Redis health check failures
+dmesg | tail -20          # OOM killer (small VMs)
+docker compose -f docker-compose.prod.yml ps   # Mongo/Redis up?
+```
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| `/health` OK but mail/API fails | Stale MongoDB/Redis connection | Deploy latest; services auto-reconnect and restart |
+| Service shows **stopped** in `prod:status` | Process crashed (OOM, error) | `pnpm prod:up` — prod scripts now auto-restart crashed services |
+| `/health/ready` returns 503 | MongoDB or Redis unreachable | Check Docker infra or remote `MONGODB_URI` / `REDIS_URL` |
+| All services running but queues not draining | Worker stuck after Redis blip | Restart workers or full `pnpm prod:down && pnpm prod:up` |
+
+**Recommended for production:** use **systemd** with `Restart=always` (see [PRODUCTION-DEPLOYMENT.md](./docs/PRODUCTION-DEPLOYMENT.md) §5.1) instead of background shell processes alone.

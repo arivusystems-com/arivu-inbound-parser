@@ -19,12 +19,79 @@ export { listDeadLetterJobs, requeueDeadLetterJob, removeDeadLetterJob, moveJobT
 export function createRedisConnection(redisUrl: string, onError?: (err: Error) => void): RedisClient {
   const redis = new Redis(redisUrl, {
     maxRetriesPerRequest: null,
+    connectTimeout: 10_000,
+    keepAlive: 30_000,
     retryStrategy: (times) => Math.min(times * 200, 3000),
+    reconnectOnError: (err) => {
+      const msg = err.message.toLowerCase();
+      return msg.includes('readonly') || msg.includes('econnreset') || msg.includes('etimedout');
+    },
   });
   redis.on('error', (err) => {
     onError?.(err);
   });
   return redis;
+}
+
+export async function pingRedis(redis: RedisClient): Promise<void> {
+  const result = await redis.ping();
+  if (result !== 'PONG') {
+    throw new Error(`Unexpected Redis ping response: ${result}`);
+  }
+}
+
+export interface ConnectionMonitorOptions {
+  intervalMs?: number;
+  maxConsecutiveFailures?: number;
+  onFailure?: (err: Error, failures: number) => void;
+  onGiveUp?: (err: Error) => void;
+}
+
+/** Periodically ping Redis; exit (or call onGiveUp) after repeated failures so a supervisor can restart. */
+export function startRedisConnectionMonitor(
+  redis: RedisClient,
+  options: ConnectionMonitorOptions = {},
+): () => void {
+  const intervalMs = options.intervalMs ?? 60_000;
+  const maxFailures = options.maxConsecutiveFailures ?? 3;
+  let consecutiveFailures = 0;
+
+  const timer = setInterval(() => {
+    void pingRedis(redis)
+      .then(() => {
+        consecutiveFailures = 0;
+      })
+      .catch((err: Error) => {
+        consecutiveFailures += 1;
+        options.onFailure?.(err, consecutiveFailures);
+        if (consecutiveFailures >= maxFailures) {
+          clearInterval(timer);
+          options.onGiveUp?.(err);
+        }
+      });
+  }, intervalMs);
+  timer.unref();
+
+  return () => clearInterval(timer);
+}
+
+export interface WorkerHealthOptions {
+  onWorkerError?: (err: Error) => void;
+  onRedisClosed?: () => void;
+}
+
+export function registerWorkerHealth<T>(
+  worker: Worker<T>,
+  redis: RedisClient,
+  options: WorkerHealthOptions = {},
+): void {
+  worker.on('error', (err) => {
+    options.onWorkerError?.(err);
+  });
+
+  redis.on('close', () => {
+    options.onRedisClosed?.();
+  });
 }
 
 export async function assertRedisReady(redisUrl: string): Promise<void> {

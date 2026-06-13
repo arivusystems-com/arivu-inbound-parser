@@ -42,9 +42,12 @@ if command -v docker >/dev/null 2>&1 && [[ -f "$PROD_COMPOSE_FILE" ]]; then
   echo
 fi
 
-if curl -sf "http://127.0.0.1:${API_PORT}/health" 2>/dev/null; then
+if curl -sf "http://127.0.0.1:${API_PORT}/health/ready" 2>/dev/null; then
   echo
-  log "API health: OK"
+  log "API readiness: OK (MongoDB + Redis)"
+elif curl -sf "http://127.0.0.1:${API_PORT}/health" 2>/dev/null; then
+  echo
+  warn "API /health OK but /health/ready failed — MongoDB or Redis may be unreachable"
 else
   warn "API health: not reachable on port ${API_PORT}"
 fi

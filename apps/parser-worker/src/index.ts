@@ -1,7 +1,7 @@
 import { Readable } from 'node:stream';
 import { simpleParser, type AddressObject, type ParsedMail } from 'mailparser';
 import { loadConfig } from '@arivu/config';
-import { connectDatabase } from '@arivu/database';
+import { connectDatabase, startMongoConnectionMonitor } from '@arivu/database';
 import { createLogger, childWithContext } from '@arivu/logger';
 import {
   assertRedisReady,
@@ -10,6 +10,8 @@ import {
   createRedisConnection,
   createWorkerWithDlq,
   jobOptions,
+  registerWorkerHealth,
+  startRedisConnectionMonitor,
   toBullConnection,
   QUEUE_NAMES,
   type MimeParseJob,
@@ -92,7 +94,7 @@ async function main() {
   );
   const deadLetterQueue = createDeadLetterQueue(toBullConnection(redis));
 
-  createWorkerWithDlq<MimeParseJob>(
+  const worker = createWorkerWithDlq<MimeParseJob>(
     QUEUE_NAMES.MIME_PARSE,
     async (job) => {
       const { messageId, tenantId, mailboxId, rawMimePath } = job.data;
@@ -229,6 +231,30 @@ async function main() {
     toBullConnection(redis),
     { config, deadLetterQueue },
   );
+
+  registerWorkerHealth(worker, redis, {
+    onWorkerError: (err) => log.error({ err }, 'Parser worker error'),
+    onRedisClosed: () => {
+      log.fatal('Redis connection closed — exiting for restart');
+      process.exit(1);
+    },
+  });
+  startMongoConnectionMonitor(config.MONGODB_URI, {
+    onFailure: (err, failures) =>
+      log.warn({ err: err.message, failures }, 'MongoDB health check failed'),
+    onGiveUp: (err) => {
+      log.fatal({ err }, 'MongoDB unreachable — exiting for restart');
+      process.exit(1);
+    },
+  });
+  startRedisConnectionMonitor(redis, {
+    onFailure: (err, failures) =>
+      log.warn({ err: err.message, failures }, 'Redis health check failed'),
+    onGiveUp: (err) => {
+      log.fatal({ err }, 'Redis unreachable — exiting for restart');
+      process.exit(1);
+    },
+  });
 
   log.info({ queue: QUEUE_NAMES.MIME_PARSE }, 'Parser worker started');
 }
