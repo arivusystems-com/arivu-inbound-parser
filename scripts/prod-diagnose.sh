@@ -41,7 +41,10 @@ fi
 echo
 
 printf '## API health\n'
-curl -sv "http://127.0.0.1:${API_PORT}/health" 2>&1 | tail -15 || true
+curl -sv "http://127.0.0.1:${API_PORT}/health/ready" 2>&1 | tail -15 || true
+echo
+printf '## API liveness\n'
+curl -sv "http://127.0.0.1:${API_PORT}/health" 2>&1 | tail -10 || true
 echo
 
 printf '## MongoDB / Redis (local)\n'

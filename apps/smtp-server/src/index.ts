@@ -3,13 +3,14 @@ import { Readable } from 'node:stream';
 import { SMTPServer, type SMTPServerOptions } from 'smtp-server';
 import { ulid } from 'ulid';
 import { loadConfig } from '@arivu/config';
-import { connectDatabase, seedDevData } from '@arivu/database';
+import { connectDatabase, seedDevData, startMongoConnectionMonitor } from '@arivu/database';
 import { createLogger, childWithContext } from '@arivu/logger';
 import {
   assertRedisReady,
   createQueue,
   createRedisConnection,
   jobOptions,
+  startRedisConnectionMonitor,
   toBullConnection,
   QUEUE_NAMES,
 } from '@arivu/queue';
@@ -221,8 +222,24 @@ async function main() {
       log.fatal({ port: config.SMTP_PORT }, 'Port already in use — run: pnpm dev:stop');
       process.exit(1);
     }
-    log.fatal({ err }, 'SMTP server error');
-    process.exit(1);
+    log.error({ err }, 'SMTP server error');
+  });
+
+  startMongoConnectionMonitor(config.MONGODB_URI, {
+    onFailure: (err, failures) =>
+      log.warn({ err: err.message, failures }, 'MongoDB health check failed'),
+    onGiveUp: (err) => {
+      log.fatal({ err }, 'MongoDB unreachable — exiting for restart');
+      process.exit(1);
+    },
+  });
+  startRedisConnectionMonitor(redis, {
+    onFailure: (err, failures) =>
+      log.warn({ err: err.message, failures }, 'Redis health check failed'),
+    onGiveUp: (err) => {
+      log.fatal({ err }, 'Redis unreachable — exiting for restart');
+      process.exit(1);
+    },
   });
 
   server.listen(config.SMTP_PORT, config.SMTP_HOST, () => {

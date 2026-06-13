@@ -174,11 +174,14 @@ wait_for_api_health() {
   local port=${1:-3000}
   local timeout=${2:-120}
   local i=0
-  log "Waiting for API health on port $port (up to ${timeout}s)..."
+  log "Waiting for API readiness on port $port (up to ${timeout}s)..."
   while [[ $i -lt $timeout ]]; do
-    if curl -sf "http://127.0.0.1:${port}/health" >/dev/null 2>&1; then
-      log "API health OK"
+    if curl -sf "http://127.0.0.1:${port}/health/ready" >/dev/null 2>&1; then
+      log "API readiness OK (MongoDB + Redis)"
       return 0
+    fi
+    if curl -sf "http://127.0.0.1:${port}/health" >/dev/null 2>&1; then
+      log "API /health OK (readiness pending — MongoDB/Redis may still be connecting)"
     fi
     if (( i > 0 && i % 10 == 0 )); then
       if ! is_service_running api; then
@@ -265,10 +268,16 @@ start_app_service() {
   fi
 
   logfile="$PROD_LOG_DIR/$name.log"
-  log "Starting $name → $logfile"
+  log "Starting $name → $logfile (auto-restart on exit)"
   (
     cd "$PROD_ROOT"
-    exec node "$entry"
+    while true; do
+      node "$entry"
+      exit_code=$?
+      printf '[prod] %s exited with code %s at %s — restarting in 5s\n' \
+        "$name" "$exit_code" "$(date -Iseconds)" >>"$logfile"
+      sleep 5
+    done
   ) >>"$logfile" 2>&1 &
   pid=$!
   echo "$pid" >"$PROD_PID_DIR/$name.pid"
